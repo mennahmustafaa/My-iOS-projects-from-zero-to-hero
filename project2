@@ -1,0 +1,64 @@
+import SwiftUI
+
+struct ContentView: View {
+    let lengthUnits = ["Meters", "Kilometers", "Feet", "Yards", "Miles"]
+    let conversionFactors: [String: Double] = [
+        "Meters": 1.0,
+        "Kilometers": 1000.0,
+        "Feet": 0.3048,
+        "Yards": 0.9144,
+        "Miles": 1609.34
+    ]
+    
+    @State private var inputUnit = "Meters"
+    @State private var outputUnit = "Feet"
+    @State private var inputValue = ""
+    
+    var convertedValue: Double {
+        let inputNumber = Double(inputValue) ?? 0
+        let inputInMeters = inputNumber * (conversionFactors[inputUnit] ?? 1)
+        let outputValue = inputInMeters / (conversionFactors[outputUnit] ?? 1)
+        return outputValue
+    }
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Enter a value")) {
+                    TextField("Amount", text: $inputValue)
+                        .keyboardType(.decimalPad)
+                }
+                
+                Section(header: Text("From Unit")) {
+                    Picker("Input Unit", selection: $inputUnit) {
+                        ForEach(lengthUnits, id: \.self) {
+                            Text($0)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                
+                Section(header: Text("To Unit")) {
+                    Picker("Output Unit", selection: $outputUnit) {
+                        ForEach(lengthUnits, id: \.self) {
+                            Text($0)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                
+                Section(header: Text("Converted Value")) {
+                    Text(convertedValue.formatted())
+                        .font(.largeTitle)
+                }
+            }
+            .navigationTitle("Unit Converter")
+        }
+    }
+}
+    #Preview {
+        ContentView()
+    }
+    
+
+
