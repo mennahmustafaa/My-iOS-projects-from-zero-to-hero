@@ -1,0 +1,127 @@
+import SwiftUI
+
+struct ContentView: View {
+    @State private var usedWords = [String]()
+    @State private var rootWord = ""
+    @State private var newWord = ""
+    @State private var errorTitle = ""
+    @State private var errorMessage = ""
+    @State private var showingError = false
+    @State private var cntr = 0
+    @State private var score = 0 // ✅ Track the score
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    TextField("Enter your word", text: $newWord)
+                        .textInputAutocapitalization(.never)
+                }
+                Section {
+                    ForEach(usedWords, id: \.self) { word in
+                        HStack {
+                            Image(systemName: "\(word.count).circle")
+                            Text(word)
+                        }
+                    }
+                }
+                Section {
+                    Text("Words Count: \(cntr)")
+                    Text("Score: \(score)")
+                        .font(.headline)
+                }
+            }
+            .navigationTitle(rootWord)
+            .onSubmit(addNewWord)
+            .onAppear(perform: startGame)
+            .toolbar {
+                Button("Restart", action: startGame)
+            }
+            .alert(errorTitle, isPresented: $showingError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage)
+            }
+        }
+    }
+
+    func addNewWord() {
+        let answer = newWord.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard answer.count > 0 else { return }
+        guard answer.count > 3 else {
+            wordError(title: "Word too short", message: "Your word must be at least 4 letters long.")
+            return
+        }
+
+        guard noDuplication(word: answer) else {
+            wordError(title: "Word used already", message: "Be more original")
+            return
+        }
+
+        guard isPossible(word: answer) else {
+            wordError(title: "Word not possible", message: "You can't spell that word from '\(rootWord)'!")
+            return
+        }
+
+        guard checkWord(word: answer) else {
+            wordError(title: "Word not recognized", message: "You can't just make them up, you know!")
+            return
+        }
+
+        withAnimation {
+            usedWords.insert(answer, at: 0)
+        }
+        
+        score += answer.count
+        newWord = ""
+        cntr += 1
+    }
+
+    func startGame() {
+        if let loadThefile = Bundle.main.url(forResource: "start", withExtension: "txt") {
+            if let fileContent = try? String(contentsOf: loadThefile, encoding: .utf8) {
+                let arrayOfWords = fileContent.components(separatedBy: "\n")
+                rootWord = arrayOfWords.randomElement() ?? "silkworm"
+                usedWords.removeAll()
+                cntr = 0
+                score = 0 // ✅ Reset Score
+                return
+            }
+        }
+        fatalError("Couldn't load start.txt")
+    }
+
+    func noDuplication(word: String) -> Bool {
+        !usedWords.contains(word)
+    }
+
+    func isPossible(word: String) -> Bool {
+        var tempWord = rootWord
+        for letter in word {
+            if let pos = tempWord.firstIndex(of: letter) {
+                tempWord.remove(at: pos)
+            } else {
+                return false
+            }
+        }
+        return true
+    }
+
+    func checkWord(word: String) -> Bool {
+        let checker = UITextChecker()
+        let range = NSRange(location: 0, length: word.utf16.count)
+        let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
+        return misspelledRange.location == NSNotFound
+    }
+
+    func wordError(title: String, message: String) {
+        errorTitle = title
+        errorMessage = message
+        showingError = true
+    }
+}
+
+#Preview {
+    ContentView()
+}
+
